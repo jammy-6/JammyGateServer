@@ -4,6 +4,10 @@ PROJECT(JammyGateServer VERSION 1.0 LANGUAGES CXX)
 set(RESOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/resource)
 message(STATUS ${RESOURCE_DIR})
 message(STATUS ${CMAKE_CURRENT_SOURCE_DIR})
+
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/proto)
+
 configure_file(Config.h.in Config.h)
 # 设置uic文件生成路径
 # set(CMAKE_AUTOUIC_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generatefiles")
@@ -47,14 +51,24 @@ file(GLOB_RECURSE "${PROJECT_NAME}_include" "${${PROJECT_NAME}_include_dir}/*.h"
 set("${PROJECT_NAME}_src_dir" "${CMAKE_CURRENT_SOURCE_DIR}/src") 
 file(GLOB_RECURSE "${PROJECT_NAME}_src" "${${PROJECT_NAME}_src_dir}/*.cpp")
 
+
+# 添加proto源文件路径
+set("${PROJECT_NAME}_protocc_dir" "${CMAKE_BINARY_IDR}/proto") 
+file(GLOB_RECURSE "${PROJECT_NAME}_protocc_src" "${${PROJECT_NAME}_protocc_dir}/*.cc")
+
+include_directories(${${PROJECT_NAME}_protocc_dir})
+
+message(STATUS ${${PROJECT_NAME}_protocc_src})
+
 # 生成可执行文件
 add_executable(     
     ${PROJECT_NAME}
     ${${PROJECT_NAME}_src}
     ${${PROJECT_NAME}_include}
+    ${${PROJECT_NAME}_protocc_src}
 )
 
 # 配置链接库
 # 链接Boost库
 #  target_link_libraries(${PROJECT_NAME} pthread ${Boost_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} pthread )
+target_link_libraries(${PROJECT_NAME} pthread ${PROJECT_NAME}_proto)
