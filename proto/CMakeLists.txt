@@ -1,4 +1,5 @@
 list(APPEND CMAKE_PREFIX_PATH "/root/.local/lib/cmake")
+#set(Protobuf_ROOT "/root/.local/lib/cmake")
 find_package(Protobuf CONFIG REQUIRED)
 message(STATUS "Using protobuf ${Protobuf_VERSION}")
 message(STATUS "Using protobuf ${Protobuf_INCLUDE_DIRS}")
