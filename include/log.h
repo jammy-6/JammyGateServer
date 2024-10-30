@@ -11,9 +11,9 @@
 #include <thread>
 #include <sys/time.h>
 #include <string.h>
-#include <stdarg.h>           // vastart va_end
+#include <stdarg.h>
 #include <assert.h>
-#include <sys/stat.h>         //mkdir
+#include <sys/stat.h>
 #include "blockqueue.h"
 #include "Buffer.h"
 
