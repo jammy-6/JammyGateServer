@@ -70,5 +70,6 @@ private:
 };
 
 
+extern ConfigMgr gConfigMgr;
 
 #endif

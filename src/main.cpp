@@ -3,29 +3,39 @@
 #include "HttpConnection.h"
 #include "LogicSystem.h"
 
+#include "ConfigMgr.h"
+#include "RedisMgr.h"
+#include "MysqlMgr.h"
+void testRegest(){
+    MysqlMgr::GetInstance()->RegUser("jjjjj","8888@qq.com","123123");
+}
 int main()
 {
+    ///testRegest();
     Log::Instance()->init(0,PROJECT_DIR);
+    RedisMgr::GetInstance();
+
     
     try
     {
-        ConfigMgr gConfigMgr;
 
         // unsigned short port = 8080;
-        std::string s = gConfigMgr["GateServer"]["Port"];
-        std::cout<<s<<std::endl;
-       unsigned short port = static_cast<unsigned short>(std::stoi(gConfigMgr["GateServer"]["Port"]));
-       LOG_INFO("Server port is %d",(int)port);
+        std::string portString = gConfigMgr["GateServer"]["Port"];
+        std::cout<<portString<<std::endl;
+        unsigned short port = static_cast<unsigned short>(std::stoi(gConfigMgr["GateServer"]["Port"]));
+        LOG_INFO("Server port is %d",static_cast<int>(port));
         net::io_context ioc{ 1 };
         boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const boost::system::error_code& error, int signal_number) {
             if (error) {
-                return;
+                return 0;
             }
             ioc.stop();
-            });
+            return 0;
+        });
         std::make_shared<CServer>(ioc, port)->Start();
         ioc.run();
+        return 0;
     }
     catch (std::exception const& e)
     {
@@ -50,7 +60,7 @@ unsigned char FromHex(unsigned char x)
 }
 std::string UrlEncode(const std::string& str)
 {
-    std::string strTemp = "";
+    std::string strTemp;
     size_t length = str.length();
     for (size_t i = 0; i < length; i++)
     {
@@ -73,3 +83,5 @@ std::string UrlEncode(const std::string& str)
     }
     return strTemp;
 }
+
+
