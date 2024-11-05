@@ -57,8 +57,8 @@ MESSAGE(STATUS "find HIREDIS_LIB PATH =  ${HIREDIS_LIB}")
 # 生成可执行文件
 add_executable(     
     ${PROJECT_NAME}
-    ${${PROJECT_NAME}_src}
-    ${${PROJECT_NAME}_include}
+        ${${PROJECT_NAME}_src}
+        ${${PROJECT_NAME}_include}
 
         # ${${PROJECT_NAME}_protocc_src}  grpc proto生成的cc文件以静态库形式链接，这里不需要了
 )
@@ -67,10 +67,10 @@ add_executable(
 # 链接proto和hiredis库mysql库
 target_link_libraries(
     ${PROJECT_NAME} 
-    pthread 
-    ${PROJECT_NAME}_proto 
-    ${HIREDIS_LIB} 
-    mysqlcppconn
+        pthread 
+        ${PROJECT_NAME}_proto 
+        ${HIREDIS_LIB} 
+        mysqlcppconn
 ) #mysql连接支持
 
 

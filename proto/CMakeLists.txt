@@ -21,15 +21,18 @@ file(GLOB_RECURSE "${PROJECT_NAME}_proto" "${${PROJECT_NAME}_proto_dir}/*.proto"
 # Add Library target with protobuf sources
 #
 add_library(${PROJECT_NAME}_proto ${${PROJECT_NAME}_proto})
-target_link_libraries(${PROJECT_NAME}_proto
+target_link_libraries(
+    ${PROJECT_NAME}_proto
     PUBLIC
         protobuf::libprotobuf
         gRPC::grpc
         gRPC::grpc++
 )
-target_include_directories(${PROJECT_NAME}_proto PUBLIC
-${PROTOBUF_INCLUDE_DIRS} 
-${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(
+    ${PROJECT_NAME}_proto PUBLIC
+        ${PROTOBUF_INCLUDE_DIRS} 
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 #
 # Compile protobuf and grpc files in mointor proto target to cpp
