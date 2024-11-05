@@ -3,3 +3,6 @@
 Make*
 *.user
 /build
+*.log
+.vscode/launch.json
+.vscode/settings.json
