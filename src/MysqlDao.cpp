@@ -61,3 +61,115 @@ int MysqlDao::RegUser(const std::string& name, const std::string& email, const s
         return -1;
     }
 }
+
+
+bool MysqlDao::checkUserExist(const std::string& name, const std::string& email){
+    auto con = pool_->getConnection();
+    try {
+        if (con == nullptr) {
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+        
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT count(*) as count FROM user WHERE name = ? or email = ?"));
+        // 绑定参数
+        pstmt->setString(1, name);
+        pstmt->setString(2, email);
+        // 执行查询
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        // 遍历结果集
+        if (res->next()) {
+            int count = res->getInt("count");
+            if(count!=0){
+                std::cout << "Email Or User Exist " << std::endl;
+                pool_->returnConnection(std::move(con));
+                return false;
+            }
+        }
+
+
+        pool_->returnConnection(std::move(con));
+        return true;
+    }
+    catch (sql::SQLException& e) {
+        pool_->returnConnection(std::move(con));
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return -1;
+    }
+}
+
+bool MysqlDao::updatePassword(const std::string& name, const std::string& email,const std::string& newPasswd){
+    auto con = pool_->getConnection();
+    try {
+        if (con == nullptr) {
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+        
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("UPDATE user SET pwd = ? WHERE name = ? and email = ?"));
+        // 绑定参数
+        pstmt->setString(1, newPasswd);
+        pstmt->setString(2, name);
+        pstmt->setString(3, email);
+        // 执行更新
+        int count = pstmt->executeUpdate();;
+        // 遍历结果集
+        
+        if(count==0){
+            std::cout << "update user passwd failed" << std::endl;
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+
+        pool_->returnConnection(std::move(con));
+        return true;
+    }
+    catch (sql::SQLException& e) {
+        pool_->returnConnection(std::move(con));
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return -1;
+    }
+}
+
+bool MysqlDao::checkUserPassword(const std::string& name, const std::string& passwd,UserInfo& userInfo){
+    auto con = pool_->getConnection();
+    try {
+        if (con == nullptr) {
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+        
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT *  from user where name = ? and pwd = ?"));
+        // 绑定参数
+        pstmt->setString(1, name);
+        pstmt->setString(2, passwd);
+
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        // 遍历结果集
+        
+        if(res->next()){
+            userInfo.name = name;
+            userInfo.email = res->getString("email");
+            userInfo.uid = res->getInt("uid");
+            userInfo.pwd = passwd;
+            pool_->returnConnection(std::move(con));
+            return true;
+        }else{
+            std::cout << "login user passwd failed" << std::endl;
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+
+    }
+    catch (sql::SQLException& e) {
+        pool_->returnConnection(std::move(con));
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return -1;
+    }
+}
