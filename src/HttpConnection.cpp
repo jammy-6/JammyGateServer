@@ -16,7 +16,7 @@ void HttpConnection::Start()
         std::size_t bytes_transferred) {
             try {
                 if (ec) {
-                    LOG_ERROR("http read err is %s" , ec.message().c_str() );
+                    LOG_ERROR("HttoConnection读取异常：%s" , ec.message().c_str() );
                     return;
                 }
 
@@ -26,7 +26,7 @@ void HttpConnection::Start()
                 self->CheckDeadline();
             }
             catch (std::exception& exp) {
-                LOG_ERROR("exception is %s" ,  exp.what() );
+                LOG_ERROR("HttoConnection读取异常：%s" ,  exp.what());
             }
         }
     );

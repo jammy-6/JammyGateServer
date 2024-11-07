@@ -3,6 +3,7 @@
 #include "Global.h"
 #include <grpcpp/grpcpp.h>
 #include "proto/message.grpc.pb.h"
+#include "log.h"
 //grpc相关
 using grpc::Channel;
 using grpc::Status;
@@ -16,12 +17,11 @@ public:
     RPConPool(size_t poolSize, std::string host, std::string port)
         : poolSize_(poolSize), host_(host), port_(port), b_stop_(false) {
         for (size_t i = 0; i < poolSize_; ++i) {
-
             std::shared_ptr<Channel> channel = grpc::CreateChannel(host+":"+port,
                 grpc::InsecureChannelCredentials());
-
             connections_.push(VarifyService::NewStub(channel));
         }
+        LOG_INFO("VerifyGrpcClient连接池初始化成功");
     }
 
     ~RPConPool() {

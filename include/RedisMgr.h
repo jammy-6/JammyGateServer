@@ -17,20 +17,21 @@ public:
             auto* context = redisConnect(host, port);
             if (context == nullptr || context->err != 0) {
                 if (context != nullptr) {
+                    LOG_DEBUG("Redis连接失败，%s:%d不正确，即将释放连接",host,port);
                     redisFree(context);
                 }
                 continue;
             }
             auto reply = (redisReply*)redisCommand(context, "AUTH %s", pwd);
             if (reply->type == REDIS_REPLY_ERROR) {
-                std::cout << "认证失败" << std::endl;
+                LOG_DEBUG("Redis连接密码认证失败，可能是密码：%s 不正确",pwd);
                 //执行成功 释放redisCommand执行后返回的redisReply所占用的内存
                 freeReplyObject(reply);
                 continue;
             }
             //执行成功 释放redisCommand执行后返回的redisReply所占用的内存
             freeReplyObject(reply);
-            std::cout << "认证成功" << std::endl;
+            LOG_INFO("Redis %d %s:%d连接并认证成功",i,host,port)
             connections_.push(context);
         }
     }

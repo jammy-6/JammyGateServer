@@ -7,6 +7,7 @@
 #include <grpcpp/grpcpp.h>
 #include "proto/message.pb.h"
 #include "proto/message.grpc.pb.h"
+#include "log.h"
 //grpc相关
 using grpc::Channel;
 using grpc::Status;
@@ -24,6 +25,7 @@ public:
                 grpc::InsecureChannelCredentials());
             connections_.push(StatusService::NewStub(channel));
         }
+        LOG_INFO("StatusGrpcClient连接池初始化成功")
     }
     ~StatusConPool() {
         std::lock_guard<std::mutex> lock(mutex_);

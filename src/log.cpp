@@ -42,7 +42,7 @@ void Log::init(int level = 1, const char* path, const char* suffix,
     isOpen_ = true;
     level_ = level;
     if(maxQueueSize > 0) {
-        isAsync_ = false;
+        isAsync_ = true;
         if(!deque_) {
             unique_ptr<BlockDeque<std::string>> newDeque(new BlockDeque<std::string>);
             deque_ = move(newDeque);

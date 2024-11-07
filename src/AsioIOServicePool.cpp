@@ -16,11 +16,12 @@ _nextIOService(0)
             _ioServices[i].run();
             });
     }
+    LOG_INFO("AsioIOServicePool初始化成功！");
 }
 
 AsioIOServicePool::~AsioIOServicePool() {
     Stop();
-    std::cout << "AsioIOServicePool destruct" << endl;
+    LOG_INFO("AsioIOServicePool销毁成功");
 }
 
 boost::asio::io_context& AsioIOServicePool::GetIOService() {
@@ -34,12 +35,13 @@ boost::asio::io_context& AsioIOServicePool::GetIOService() {
 void AsioIOServicePool::Stop(){
     //因为仅仅执行work.reset并不能让iocontext从run的状态中退出
     //当iocontext已经绑定了读或写的监听事件后，还需要手动stop该服务。
+    LOG_INFO("AsioIOServicePool开始暂停服务");
     for (auto& work : _works) {
         //把服务先停止
         work->get_io_context().stop();
         work.reset();
     }
-
+    LOG_INFO("AsioIOServicePool暂停服务成功");
     for (auto& t : _threads) {
         t.join();
     }

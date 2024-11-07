@@ -8,6 +8,7 @@
 #include <mysql_connection.h>
 #include <mysql_driver.h>
 #include <mutex>
+#include "log.h"
 class MysqlPool {
 public:
     MysqlPool(const std::string& url, const std::string& user, const std::string& pass, const std::string& schema, int poolSize)
@@ -22,7 +23,7 @@ public:
         }
         catch (sql::SQLException& e) {
             // 处理异常
-            std::cout << "mysql pool init failed" << std::endl;
+            LOG_ERROR("MySQL连接池初始化异常");
         }
     }
     std::unique_ptr<sql::Connection> getConnection() {

@@ -81,7 +81,7 @@ bool MysqlDao::checkUserExist(const std::string& name, const std::string& email)
         if (res->next()) {
             int count = res->getInt("count");
             if(count!=0){
-                std::cout << "Email Or User Exist " << std::endl;
+                LOG_INFO("MySQL查询结果：用户%s或邮箱%s已存在",name.c_str(),email.c_str());
                 pool_->returnConnection(std::move(con));
                 return false;
             }
@@ -93,9 +93,7 @@ bool MysqlDao::checkUserExist(const std::string& name, const std::string& email)
     }
     catch (sql::SQLException& e) {
         pool_->returnConnection(std::move(con));
-        std::cerr << "SQLException: " << e.what();
-        std::cerr << " (MySQL error code: " << e.getErrorCode();
-        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        LOG_ERROR("MySQL服务调用异常：信息为 %s ,错误码%d,SQLState为",e.what(),e.getErrorCode(),e.getSQLState().c_str());
         return -1;
     }
 }
@@ -118,7 +116,7 @@ bool MysqlDao::updatePassword(const std::string& name, const std::string& email,
         // 遍历结果集
         
         if(count==0){
-            std::cout << "update user passwd failed" << std::endl;
+            LOG_INFO("MySQL调用，用户：%s，邮箱：%s，更新密码为%s失败",name.c_str(),email.c_str(),newPasswd.c_str());
             pool_->returnConnection(std::move(con));
             return false;
         }
@@ -128,9 +126,7 @@ bool MysqlDao::updatePassword(const std::string& name, const std::string& email,
     }
     catch (sql::SQLException& e) {
         pool_->returnConnection(std::move(con));
-        std::cerr << "SQLException: " << e.what();
-        std::cerr << " (MySQL error code: " << e.getErrorCode();
-        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        LOG_ERROR("MySQL服务调用异常：信息为 %s ,错误码%d,SQLState为",e.what(),e.getErrorCode(),e.getSQLState().c_str());
         return -1;
     }
 }
@@ -156,10 +152,11 @@ bool MysqlDao::checkUserPassword(const std::string& name, const std::string& pas
             userInfo.email = res->getString("email");
             userInfo.uid = res->getInt("uid");
             userInfo.pwd = passwd;
+            LOG_INFO("MySQL调用，获取用户信息,UID：%d，用户名：%s，邮箱：%s，密码为%s失败",userInfo.uid,userInfo.name.c_str(),userInfo.email.c_str(),userInfo.pwd.c_str());
             pool_->returnConnection(std::move(con));
             return true;
         }else{
-            std::cout << "login user passwd failed" << std::endl;
+            LOG_INFO("MySQL调用，用户登录验证密码失败，用户名：%s，密码：%s",name.c_str(),passwd.c_str());
             pool_->returnConnection(std::move(con));
             return false;
         }
@@ -167,9 +164,7 @@ bool MysqlDao::checkUserPassword(const std::string& name, const std::string& pas
     }
     catch (sql::SQLException& e) {
         pool_->returnConnection(std::move(con));
-        std::cerr << "SQLException: " << e.what();
-        std::cerr << " (MySQL error code: " << e.getErrorCode();
-        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        LOG_ERROR("MySQL服务调用异常：信息为 %s ,错误码%d,SQLState为",e.what(),e.getErrorCode(),e.getSQLState().c_str());
         return -1;
     }
 }

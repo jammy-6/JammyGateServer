@@ -6,24 +6,26 @@
 #include "ConfigMgr.h"
 #include "RedisMgr.h"
 #include "MysqlMgr.h"
-void testRegest(){
-    MysqlMgr::GetInstance()->RegUser("jjjjj","8888@qq.com","123123");
-}
+#include <string>
+#include "StatusGrpcClient.h"
 int main()
 {
-    ///testRegest();
-    Log::Instance()->init(0,PROJECT_DIR);
-    RedisMgr::GetInstance();
-
+    LOG_INFO("JammyGateServer启动中...");
+    Log::Instance()->init(
+        std::stoi(gConfigMgr["LogSystem"]["Level"]),
+        gConfigMgr["LogSystem"]["Path"].c_str(),
+        gConfigMgr["LogSystem"]["Suffix"].c_str(),
+        std::stoi(gConfigMgr["LogSystem"]["Async"])
+    );
     
+    MysqlMgr::GetInstance();
+    RedisMgr::GetInstance();
+    StatusGrpcClient::GetInstance();
     try
     {
-
-        // unsigned short port = 8080;
         std::string portString = gConfigMgr["GateServer"]["Port"];
         std::cout<<portString<<std::endl;
         unsigned short port = static_cast<unsigned short>(std::stoi(gConfigMgr["GateServer"]["Port"]));
-        LOG_INFO("Server port is %d",static_cast<int>(port));
         net::io_context ioc{ 1 };
         boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const boost::system::error_code& error, int signal_number) {
@@ -39,7 +41,7 @@ int main()
     }
     catch (std::exception const& e)
     {
-        LOG_ERROR(e.what());
+        LOG_ERROR("async_wait调用异常：%s",e.what());
         return EXIT_FAILURE;
     }
 }

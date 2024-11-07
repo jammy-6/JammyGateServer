@@ -9,7 +9,7 @@ ConfigMgr::ConfigMgr(){
     // // 构建config.ini文件的完整路径  
     // boost::filesystem::path config_path = current_path / "config.ini";
     std::string config_path = PROJECT_DIR + std::string("/config.ini");
-    std::cout << "Config path: " << config_path << std::endl;
+    LOG_INFO("配置文件路径为：%s", config_path.c_str());
 
     // 使用Boost.PropertyTree来读取INI文件  
     boost::property_tree::ptree pt;
@@ -34,13 +34,14 @@ ConfigMgr::ConfigMgr(){
         _config_map[section_name] = sectionInfo;
     }
 
+    LOG_INFO("读取到的配置文件如下：");
     // 输出所有的section和key-value对  
     for (const auto& section_entry : _config_map) {
         const std::string& section_name = section_entry.first;
         SectionInfo section_config = section_entry.second;
-        std::cout << "[" << section_name << "]" << std::endl;
+        LOG_INFO("[%s]",section_name.c_str());
         for (const auto& key_value_pair : section_config._section_datas) {
-            std::cout << key_value_pair.first << "=" << key_value_pair.second << std::endl;
+            LOG_INFO("%s = %s",key_value_pair.first.c_str(),key_value_pair.second.c_str());
         }
     }
 

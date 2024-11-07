@@ -8,8 +8,7 @@ _ioc(ioc),
 _acceptor(ioc, tcp::endpoint(tcp::v4(), port)),
 _socket(ioc)
 {
-    
-    LOG_INFO("Server port is %d",(int)_acceptor.local_endpoint().port());
+    LOG_INFO("CServer初始化成功，端口为%d",(int)_acceptor.local_endpoint().port());
 }
 
 void CServer::Start()
@@ -23,14 +22,19 @@ void CServer::Start()
                 self->Start();
                 return;
             }
+            tcp::endpoint remote_endpoint = newConn->GetSocket().remote_endpoint();
             //处理新链接，创建HpptConnection类管理新连接
+            LOG_INFO("接收到新连接：IP为%s,端口为%d",
+                remote_endpoint.address().to_string().c_str(),
+                (int)remote_endpoint.port()
+            );
             newConn->Start();
             //继续监听
             self->Start();
         }
         catch (std::exception& exp) {
             
-            LOG_ERROR("exception is %s" ,  exp.what() );
+            LOG_ERROR("CServer发生异常：%s" ,  exp.what() );
             self->Start();
         }
     });

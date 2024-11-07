@@ -16,12 +16,14 @@ void LogicSystem::RegPost(std::string url, HttpHandler handler) {
 }
 LogicSystem::LogicSystem() {
     RegGet("/get_test", [](std::shared_ptr<HttpConnection> connection) {
+        LOG_INFO("get_test : 连接测试成功");
         beast::ostream(connection->_response.body()) << "receive get_test req";
     });
 
     RegPost("/get_varifycode_register", [](std::shared_ptr<HttpConnection> connection) {
+        LOG_INFO("get_varifycode_register 服务调用开始");
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
-        LOG_INFO("receive body is %s ", body_str.c_str());
+        LOG_INFO("接收到的HTTP请求体为%s ", body_str.c_str());
         connection->_response.set(http::field::content_type, "text/json");
 
         json body_json;
@@ -29,9 +31,9 @@ LogicSystem::LogicSystem() {
         try{
             body_json = json::parse(body_str);
         }catch (json::parse_error& e){
-            LOG_ERROR( "Failed to parse JSON data!");
-             response_json["error_code"] = ERRORCODE::Error_Json;
-             response_json["body"] = body_str;
+            LOG_ERROR( "json解析失败，获取验证码失败，即将返回");
+            response_json["error_code"] = ERRORCODE::Error_Json;
+            response_json["body"] = body_str;
             beast::ostream(connection->_response.body()) << response_json;
             return true;
         }
@@ -39,20 +41,21 @@ LogicSystem::LogicSystem() {
        std::string name = body_json["user"];
        ///要重置密码的用户不存在
        if(!MysqlMgr::GetInstance()->checkUserExist(name,email)){
-            LOG_ERROR( "User Or Email Not Exist!");
+            LOG_ERROR( "用户名或邮箱已经存在，获取验证码失败，即将返回");
             response_json["error_code"] = ERRORCODE::Error_User_Not_Exist;
             response_json["body"] = body_str;
             beast::ostream(connection->_response.body()) << response_json;
             return true;
         }
        GetVarifyRsp rsp = VerifyGrpcClient::GetInstance()->GetVarifyCode(email);
-        auto err  = rsp.error();
+       auto err  = rsp.error();
+       LOG_INFO("VerifyGrpcClient服务调用成功");
        response_json["error_code"] = 0;
        response_json["email"] = rsp.email();
        ///验证码是没必要返回给客户端的，这里只是方便调试以及新增用户
        response_json["code"] = rsp.code();
-    
        beast::ostream(connection->_response.body()) << response_json.dump();
+       LOG_INFO("用户%s，邮箱为%s,获取验证码%s成功",name.c_str(),email.c_str(),rsp.code().c_str());
        return true;
     });
 
@@ -205,53 +208,54 @@ LogicSystem::LogicSystem() {
     });
 
     RegPost("/user_login", [](std::shared_ptr<HttpConnection> connection) {
-    auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
-    std::cout << "receive body is " << body_str << std::endl;
-    connection->_response.set(http::field::content_type, "text/json");
-    json request_json;
-    json response_json;
-    try{
-        request_json = json::parse(body_str);
-    }catch(json::parse_error& e){
-        LOG_ERROR( "Failed to parse JSON data!");
-        response_json["error"] = ERRORCODE::Error_Json;
-        std::string jsonstr = response_json.dump();
-        beast::ostream(connection->_response.body()) << jsonstr;
-        return true;
-    }
+        auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
+        std::cout << "receive body is " << body_str << std::endl;
+        connection->_response.set(http::field::content_type, "text/json");
+        json request_json;
+        json response_json;
+        try{
+            request_json = json::parse(body_str);
+        }catch(json::parse_error& e){
+            LOG_ERROR( "Failed to parse JSON data!");
+            response_json["error"] = ERRORCODE::Error_Json;
+            std::string jsonstr = response_json.dump();
+            beast::ostream(connection->_response.body()) << jsonstr;
+            return true;
+        }
 
-    std::string name = request_json["user"];
-    std::string pwd = request_json["passwd"];
-    ///UserInfo userInfo;
-    //查询数据库判断用户名和密码是否匹配
-    UserInfo userInfo;
-    bool pwd_valid = MysqlMgr::GetInstance()->checkUserPassword(name, pwd,userInfo);
-    if (!pwd_valid) {
-        std::cout << " user pwd not match" << std::endl;
-        response_json["error"] = ERRORCODE::ERROR_PASSWORD_NOT_CORRECT;
+        std::string name = request_json["user"];
+        std::string pwd = request_json["passwd"];
+        ///UserInfo userInfo;
+        //查询数据库判断用户名和密码是否匹配
+        UserInfo userInfo;
+        bool pwd_valid = MysqlMgr::GetInstance()->checkUserPassword(name, pwd,userInfo);
+        if (!pwd_valid) {
+            std::cout << " user pwd not match" << std::endl;
+            response_json["error"] = ERRORCODE::ERROR_PASSWORD_NOT_CORRECT;
+            std::string jsonstr = response_json.dump();
+            beast::ostream(connection->_response.body()) << jsonstr;
+            return true;
+        }
+        //查询StatusServer找到合适的连接
+        auto reply = StatusGrpcClient::GetInstance()->GetChatServer(userInfo.uid);
+        if (reply.error()) {
+            std::cout << " grpc get chat server failed, error is " << reply.error()<< std::endl;
+            response_json["error"] = ERRORCODE::RPCFailed;
+            std::string jsonstr = response_json.dump();
+            beast::ostream(connection->_response.body()) << jsonstr;
+            return true;
+        }
+        std::cout << "succeed to load userinfo uid is " << userInfo.uid << std::endl;
+        response_json["error"] = 0;
+        response_json["user"] = name;
+        response_json["uid"] = userInfo.uid;
+        response_json["port"] = reply.port();
+        response_json["token"] = reply.token();
+        response_json["host"] = reply.host();
         std::string jsonstr = response_json.dump();
         beast::ostream(connection->_response.body()) << jsonstr;
+        std::cout<<jsonstr<<std::endl;
         return true;
-    }
-    //查询StatusServer找到合适的连接
-    auto reply = StatusGrpcClient::GetInstance()->GetChatServer(userInfo.uid);
-    if (reply.error()) {
-        std::cout << " grpc get chat server failed, error is " << reply.error()<< std::endl;
-        response_json["error"] = ERRORCODE::RPCFailed;
-        std::string jsonstr = response_json.dump();
-        beast::ostream(connection->_response.body()) << jsonstr;
-        return true;
-    }
-    std::cout << "succeed to load userinfo uid is " << userInfo.uid << std::endl;
-    response_json["error"] = 0;
-    response_json["user"] = name;
-    response_json["uid"] = userInfo.uid;
-    response_json["token"] = reply.token();
-    response_json["host"] = reply.host();
-    std::string jsonstr = response_json.dump();
-    beast::ostream(connection->_response.body()) << jsonstr;
-    std::cout<<jsonstr<<std::endl;
-    return true;
     });
 }
 
