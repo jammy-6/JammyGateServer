@@ -10,7 +10,7 @@
 #include "log.h"
 #include "Config.h"
 
-struct UserInfo{
+typedef struct UserInfo{
 
     int uid;
     std::string token;
@@ -18,7 +18,7 @@ struct UserInfo{
     std::string name;
     std::string email;
     std::string pwd;
-};
+}UserInfo;
 
 enum ERRORCODE {
     Success = 0,

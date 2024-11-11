@@ -152,7 +152,7 @@ bool MysqlDao::checkUserPassword(const std::string& name, const std::string& pas
             userInfo.email = res->getString("email");
             userInfo.uid = res->getInt("uid");
             userInfo.pwd = passwd;
-            LOG_INFO("MySQL调用，获取用户信息,UID：%d，用户名：%s，邮箱：%s，密码为%s失败",userInfo.uid,userInfo.name.c_str(),userInfo.email.c_str(),userInfo.pwd.c_str());
+            LOG_INFO("MySQL调用，获取用户信息,UID：%d，用户名：%s，邮箱：%s，密码为%成功",userInfo.uid,userInfo.name.c_str(),userInfo.email.c_str(),userInfo.pwd.c_str());
             pool_->returnConnection(std::move(con));
             return true;
         }else{

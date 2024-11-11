@@ -42,13 +42,15 @@ LogicSystem::LogicSystem() {
        ///要重置密码的用户不存在
        if(!MysqlMgr::GetInstance()->checkUserExist(name,email)){
             LOG_ERROR( "用户名或邮箱已经存在，获取验证码失败，即将返回");
-            response_json["error_code"] = ERRORCODE::Error_User_Not_Exist;
+            response_json["error_code"] = ERRORCODE::Error_User_Exist;
             response_json["body"] = body_str;
             beast::ostream(connection->_response.body()) << response_json;
             return true;
         }
        GetVarifyRsp rsp = VerifyGrpcClient::GetInstance()->GetVarifyCode(email);
+    
        auto err  = rsp.error();
+       ///有问题
        LOG_INFO("VerifyGrpcClient服务调用成功");
        response_json["error_code"] = 0;
        response_json["email"] = rsp.email();
@@ -239,16 +241,16 @@ LogicSystem::LogicSystem() {
         //查询StatusServer找到合适的连接
         auto reply = StatusGrpcClient::GetInstance()->GetChatServer(userInfo.uid);
         if (reply.error()) {
-            std::cout << " grpc get chat server failed, error is " << reply.error()<< std::endl;
+            LOG_ERROR("rpc调用失败,错误是%d",reply.error());
             response_json["error"] = ERRORCODE::RPCFailed;
             std::string jsonstr = response_json.dump();
             beast::ostream(connection->_response.body()) << jsonstr;
             return true;
         }
-        std::cout << "succeed to load userinfo uid is " << userInfo.uid << std::endl;
+        LOG_INFO("成功调用grpc::GetChatServer服务,uid为%d",userInfo.uid);
         response_json["error"] = 0;
         response_json["user"] = name;
-        response_json["uid"] = userInfo.uid;
+        response_json["uid"] = std::to_string(userInfo.uid);
         response_json["port"] = reply.port();
         response_json["token"] = reply.token();
         response_json["host"] = reply.host();
