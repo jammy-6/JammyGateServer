@@ -1,16 +1,15 @@
 #ifndef VERIFYGRPCCLIENT_H
 #define VERIFYGRPCCLIENT_H
 
-#include <grpcpp/grpcpp.h>
-#include "Global.h"
-#include "Singleton.h"
-#include "RPConPool.h"
 #include "ConfigMgr.h"
-class VerifyGrpcClient:public Singleton<VerifyGrpcClient>
-{
+#include "Global.h"
+#include "RPConPool.h"
+#include "Singleton.h"
+#include <grpcpp/grpcpp.h>
+class VerifyGrpcClient : public Singleton<VerifyGrpcClient> {
     friend class Singleton<VerifyGrpcClient>;
-public:
 
+  public:
     GetVarifyRsp GetVarifyCode(std::string email) {
         ClientContext context;
         GetVarifyRsp reply;
@@ -23,8 +22,7 @@ public:
 
             pool_->returnConnection(std::move(stub));
             return reply;
-        }
-        else {
+        } else {
 
             reply.set_error(ERRORCODE::RPCFailed);
             pool_->returnConnection(std::move(stub));
@@ -32,15 +30,17 @@ public:
         }
     }
 
-private:
-    VerifyGrpcClient(){
-        
+  private:
+    VerifyGrpcClient() {
+
         std::string ip = gConfigMgr["VarifyServer"]["Ip"];
         std::string port = gConfigMgr["VarifyServer"]["Port"];
         std::string size = gConfigMgr["VarifyServer"]["RPCChannelSize"];
-        pool_.reset(new RPConPool(stoi(size),ip,port));
-        // std::shared_ptr<Channel> channel = grpc::CreateChannel("127.0.0.1:50051", grpc::InsecureChannelCredentials());
-        // stub_ = VarifyService::NewStub(channel);
+        pool_.reset(new RPConPool(stoi(size), ip, port));
+        // std::shared_ptr<Channel> channel =
+        // grpc::CreateChannel("127.0.0.1:50051",
+        // grpc::InsecureChannelCredentials()); stub_ =
+        // VarifyService::NewStub(channel);
     }
 
     std::unique_ptr<RPConPool> pool_;

@@ -10,6 +10,7 @@
 #include "StatusGrpcClient.h"
 int main()
 {
+
     LOG_INFO("JammyGateServer启动中...");
     Log::Instance()->init(
         std::stoi(gConfigMgr["LogSystem"]["Level"]),
@@ -24,7 +25,6 @@ int main()
     try
     {
         std::string portString = gConfigMgr["GateServer"]["Port"];
-        std::cout<<portString<<std::endl;
         unsigned short port = static_cast<unsigned short>(std::stoi(gConfigMgr["GateServer"]["Port"]));
         net::io_context ioc{ 1 };
         boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);

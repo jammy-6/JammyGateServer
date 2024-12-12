@@ -46,18 +46,21 @@ int MysqlDao::RegUser(const std::string& name, const std::string& email, const s
         std::unique_ptr<sql::ResultSet> res(stmtResult->executeQuery("SELECT @result AS result"));
         if (res->next()) {
             int result = res->getInt("result");
-            std::cout << "Result: " << result << std::endl;
+            LOG_INFO("%s,%s用户注册成功，mysql返回结果%d",name.c_str(),email.c_str(),result);
             pool_->returnConnection(std::move(con));
             return result;
         }
+        LOG_INFO("%s,%s用户注册失败，mysql返回结果-1",name.c_str(),email.c_str());
         pool_->returnConnection(std::move(con));
         return -1;
     }
     catch (sql::SQLException& e) {
         pool_->returnConnection(std::move(con));
-        std::cerr << "SQLException: " << e.what();
-        std::cerr << " (MySQL error code: " << e.getErrorCode();
-        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        LOG_ERROR("Mysql调用异常：%s,错误码为：%d，SQL状态为:%s",
+            e.what(),
+            e.getErrorCode(),
+            e.getSQLState().c_str()
+        );
         return -1;
     }
 }
@@ -120,7 +123,7 @@ bool MysqlDao::updatePassword(const std::string& name, const std::string& email,
             pool_->returnConnection(std::move(con));
             return false;
         }
-
+        LOG_INFO("MySQL调用，用户：%s，邮箱：%s，更新密码为%s成功",name.c_str(),email.c_str(),newPasswd.c_str());
         pool_->returnConnection(std::move(con));
         return true;
     }
@@ -165,6 +168,41 @@ bool MysqlDao::checkUserPassword(const std::string& name, const std::string& pas
     catch (sql::SQLException& e) {
         pool_->returnConnection(std::move(con));
         LOG_ERROR("MySQL服务调用异常：信息为 %s ,错误码%d,SQLState为",e.what(),e.getErrorCode(),e.getSQLState().c_str());
+        return -1;
+    }
+}
+
+bool MysqlDao::checkUserEmailMatch(const std::string& user,const std::string& email){
+    auto con = pool_->getConnection();
+    try {
+        if (con == nullptr) {
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+        
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT count(*) as count from user where name = ? and email = ?"));
+        // 绑定参数
+        pstmt->setString(1, user);
+        pstmt->setString(2, email);
+
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        // 遍历结果集
+          // 遍历结果集
+        if (res->next()) {
+            int count = res->getInt("count");
+            if(count!=0){
+                LOG_INFO("MySQL查询结果：用户%s邮箱%s匹配",user.c_str(),email.c_str());
+                pool_->returnConnection(std::move(con));
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+    }
+    catch (sql::SQLException& e) {
+        pool_->returnConnection(std::move(con));
+        LOG_ERROR("checkUserEmailMatch :: MySQL服务调用异常：信息为 %s ,错误码%d,SQLState为",e.what(),e.getErrorCode(),e.getSQLState().c_str());
         return -1;
     }
 }

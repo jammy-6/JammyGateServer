@@ -31,6 +31,7 @@ enum ERRORCODE {
     Error_User_Not_Exist = 1007 ,//用户不存在
     Error_Update_Password = 1008,///更新数据库失败
     ERROR_PASSWORD_NOT_CORRECT = 1009,///密码不正确
+    ERROR_USER_EMAIL_NOT_MATCH = 1010,//用户名与邮箱不匹配
     
 };
 
