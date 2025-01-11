@@ -54,23 +54,70 @@ include_directories("/mnt/repo/hiredis")
 # 查找 Hiredis 库
 find_library(HIREDIS_LIB hiredis PATHS "/mnt/repo/hiredis/build")
 MESSAGE(STATUS "find HIREDIS_LIB PATH =  ${HIREDIS_LIB}")
+find_package(spdlog REQUIRED)
 # 生成可执行文件
 add_executable(     
     ${PROJECT_NAME}
-        ${${PROJECT_NAME}_src}
-        ${${PROJECT_NAME}_include}
-
-        # ${${PROJECT_NAME}_protocc_src}  grpc proto生成的cc文件以静态库形式链接，这里不需要了
+    ${${PROJECT_NAME}_src_dir}/CServer.cpp
+    ${${PROJECT_NAME}_src_dir}/HttpConnection.cpp
+    ${${PROJECT_NAME}_src_dir}/LogicSystem.cpp
+    ${${PROJECT_NAME}_src_dir}/ConfigMgr.cpp
+    ${${PROJECT_NAME}_src_dir}/AsioIOServicePool.cpp
+    ${${PROJECT_NAME}_src_dir}/StatusGrpcClient.cpp
+    ${${PROJECT_NAME}_src_dir}/main.cpp
 )
 
+# 配置mysql相关动态库
+add_library(
+    ${PROJECT_NAME}_mysql
+    SHARED
+    ${${PROJECT_NAME}_src_dir}/MysqlDao.cpp
+    ${${PROJECT_NAME}_src_dir}/MysqlMgr.cpp
+)
+# 连接mysqlconn8连接库与spdlog
+target_link_libraries(
+    ${PROJECT_NAME}_mysql 
+        pthread 
+        mysqlcppconn
+        spdlog::spdlog
+)
+
+# 配置redis相关动态库
+add_library(
+    ${PROJECT_NAME}_redis
+    SHARED
+    ${${PROJECT_NAME}_src_dir}/RedisMgr.cpp
+)
+# 链接proto和hiredis库mysql库
+target_link_libraries(
+    ${PROJECT_NAME}_mysql 
+        pthread 
+        ${HIREDIS_LIB}
+        spdlog::spdlog
+)
+
+# 配置asio相关动态库
+add_library(
+    ${PROJECT_NAME}_asio
+    SHARED
+    ${${PROJECT_NAME}_src_dir}/AsioIOServicePool.cpp
+)
+# 链接proto和hiredis库mysql库
+target_link_libraries(
+    ${PROJECT_NAME}_asio 
+        pthread 
+        ${HIREDIS_LIB}
+        spdlog::spdlog
+)
 
 # 链接proto和hiredis库mysql库
 target_link_libraries(
     ${PROJECT_NAME} 
         pthread 
         ${PROJECT_NAME}_proto 
-        ${HIREDIS_LIB} 
-        mysqlcppconn
+        ${PROJECT_NAME}_mysql
+        ${PROJECT_NAME}_redis
+        spdlog::spdlog
 ) #mysql连接支持
 
 

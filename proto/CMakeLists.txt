@@ -8,6 +8,7 @@ message(STATUS "Using protobuf ${Protobuf_INCLUDE_DIRS}")
 
 find_package(gRPC CONFIG REQUIRED)
 find_package(c-ares CONFIG)
+
 # find_package(Threads)
 
 #
@@ -20,7 +21,7 @@ file(GLOB_RECURSE "${PROJECT_NAME}_proto" "${${PROJECT_NAME}_proto_dir}/*.proto"
 #
 # Add Library target with protobuf sources
 #
-add_library(${PROJECT_NAME}_proto ${${PROJECT_NAME}_proto})
+add_library(${PROJECT_NAME}_proto SHARED  ${${PROJECT_NAME}_proto})
 target_link_libraries(
     ${PROJECT_NAME}_proto
     PUBLIC
@@ -37,6 +38,17 @@ target_include_directories(
 #
 # Compile protobuf and grpc files in mointor proto target to cpp
 #
+message(STATUS "$CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
-protobuf_generate(TARGET ${PROJECT_NAME}_proto LANGUAGE cpp)
-protobuf_generate(TARGET ${PROJECT_NAME}_proto LANGUAGE grpc GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}")
+protobuf_generate(
+    TARGET ${PROJECT_NAME}_proto 
+    LANGUAGE cpp 
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+protobuf_generate(
+    TARGET ${PROJECT_NAME}_proto 
+    LANGUAGE grpc GENERATE_EXTENSIONS 
+    .grpc.pb.h .grpc.pb.cc 
+    PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"  
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
