@@ -10,7 +10,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/proto)
 # 配置项目宏相关
 configure_file(Config.h.in Config.h)
 include_directories(${CMAKE_BINARY_DIR})
-
+include_directories("/root/.local/include")
 # VS sln项目文件分类
 if(WIN32)
 	source_group("CMake Rules"  REGULAR_EXPRESSION "^$")
@@ -31,7 +31,6 @@ endif()
 # 所以还需要将编译目录包含到Include目录，否则编译器会找不到这些头文件：
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-
 # 添加项目头文件路径
 set("${PROJECT_NAME}_include_dir" "${CMAKE_CURRENT_SOURCE_DIR}/include") 
 include_directories(${${PROJECT_NAME}_include_dir})
@@ -50,21 +49,39 @@ MESSAGE(STATUS "${PROJECT_NAME}_protocc_src = ${${PROJECT_NAME}_protocc_src}")
 include_directories(${${PROJECT_NAME}_protocc_dir})
 
 # 添加 Hiredis 库路径
-include_directories("/mnt/repo/hiredis")
+include_directories("/repo/hiredis")
 # 查找 Hiredis 库
-find_library(HIREDIS_LIB hiredis PATHS "/mnt/repo/hiredis/build")
+find_library(HIREDIS_LIB hiredis PATHS "/repo/hiredis/build")
 MESSAGE(STATUS "find HIREDIS_LIB PATH =  ${HIREDIS_LIB}")
 find_package(spdlog REQUIRED)
-# 生成可执行文件
-add_executable(     
-    ${PROJECT_NAME}
+
+
+# 配置rpcservice相关动态库
+add_library(
+    ${PROJECT_NAME}_rpcservice
+    SHARED
+    ${${PROJECT_NAME}_src_dir}/StatusGrpcClient.cpp
+    ${${PROJECT_NAME}_src_dir}/VerifyGrpcClient.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_rpcservice
+        ${PROJECT_NAME}_proto
+        spdlog::spdlog
+)
+
+# 配置cserver相关动态库
+add_library(
+    ${PROJECT_NAME}_server
     ${${PROJECT_NAME}_src_dir}/CServer.cpp
     ${${PROJECT_NAME}_src_dir}/HttpConnection.cpp
-    ${${PROJECT_NAME}_src_dir}/LogicSystem.cpp
     ${${PROJECT_NAME}_src_dir}/ConfigMgr.cpp
-    ${${PROJECT_NAME}_src_dir}/AsioIOServicePool.cpp
-    ${${PROJECT_NAME}_src_dir}/StatusGrpcClient.cpp
-    ${${PROJECT_NAME}_src_dir}/main.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_server
+        ${PROJECT_NAME}_asio
+        spdlog::spdlog
 )
 
 # 配置mysql相关动态库
@@ -73,6 +90,7 @@ add_library(
     SHARED
     ${${PROJECT_NAME}_src_dir}/MysqlDao.cpp
     ${${PROJECT_NAME}_src_dir}/MysqlMgr.cpp
+    ${${PROJECT_NAME}_src_dir}/MysqlPool.cpp
 )
 # 连接mysqlconn8连接库与spdlog
 target_link_libraries(
@@ -87,13 +105,15 @@ add_library(
     ${PROJECT_NAME}_redis
     SHARED
     ${${PROJECT_NAME}_src_dir}/RedisMgr.cpp
+    ${${PROJECT_NAME}_src_dir}/RedisConPool.cpp
 )
-# 链接proto和hiredis库mysql库
+
 target_link_libraries(
-    ${PROJECT_NAME}_mysql 
+    ${PROJECT_NAME}_redis
         pthread 
         ${HIREDIS_LIB}
         spdlog::spdlog
+        
 )
 
 # 配置asio相关动态库
@@ -102,22 +122,28 @@ add_library(
     SHARED
     ${${PROJECT_NAME}_src_dir}/AsioIOServicePool.cpp
 )
-# 链接proto和hiredis库mysql库
+
 target_link_libraries(
     ${PROJECT_NAME}_asio 
         pthread 
-        ${HIREDIS_LIB}
-        spdlog::spdlog
+        spdlog::spdlog 
+        
 )
 
+# 生成可执行文件
+add_executable(     
+    ${PROJECT_NAME}
+    ${${PROJECT_NAME}_src_dir}/LogicSystem.cpp
+    ${${PROJECT_NAME}_src_dir}/main.cpp
+)
 # 链接proto和hiredis库mysql库
 target_link_libraries(
     ${PROJECT_NAME} 
-        pthread 
-        ${PROJECT_NAME}_proto 
         ${PROJECT_NAME}_mysql
         ${PROJECT_NAME}_redis
+        ${PROJECT_NAME}_server
+        ${PROJECT_NAME}_rpcservice
         spdlog::spdlog
-) #mysql连接支持
+) 
 
 

@@ -1,76 +1,82 @@
 #ifndef RPCONPOOL_H
 #define RPCONPOOL_H
-#include "Global.h"
-#include "proto/message.grpc.pb.h"
 #include <condition_variable>
+#include <functional>
 #include <grpcpp/grpcpp.h>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <string>
+
 // grpc相关
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
-using message::GetVarifyReq;
-using message::GetVarifyRsp;
-using message::VarifyService;
-class RPConPool {
-public:
-  RPConPool(size_t poolSize, std::string host, std::string port)
-      : poolSize_(poolSize), host_(host), port_(port), b_stop_(false) {
-    for (size_t i = 0; i < poolSize_; ++i) {
-      std::shared_ptr<Channel> channel = grpc::CreateChannel(
-          host + ":" + port, grpc::InsecureChannelCredentials());
-      connections_.push(VarifyService::NewStub(channel));
+template <class StubService, class StubType> class GrpcConnectionPool {
+  public:
+    // 构造函数，传入目标服务器地址
+    GrpcConnectionPool(const std::string &target, size_t poolSize)
+        : server_target(target), poolSize_(poolSize) {
+        // 初始化最小连接数
+        for (int i = 0; i < poolSize_; ++i) {
+            addConnection();
+        }
     }
-    spdlog::info("VerifyGrpcClient连接池初始化成功");
-  }
 
-  ~RPConPool() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    Close();
-    while (!connections_.empty()) {
-      connections_.pop();
+    ~GrpcConnectionPool() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        close();
+        while (!connections.empty()) {
+            auto conn = connections.front();
+            connections.pop();
+            conn.reset();
+        }
     }
-  }
 
-  std::unique_ptr<VarifyService::Stub> getConnection() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cond_.wait(lock, [this] {
-      if (b_stop_) {
-        return true;
-      }
-      return !connections_.empty();
-    });
-    //如果停止则直接返回空指针
-    if (b_stop_) {
-      return nullptr;
+    void close() {
+        b_stop_ = true;
+        cv.notify_all();
     }
-    auto context = std::move(connections_.front());
-    connections_.pop();
-    return context;
-  }
 
-  void returnConnection(std::unique_ptr<VarifyService::Stub> context) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (b_stop_) {
-      return;
+    // 获取一个连接
+    std::shared_ptr<StubType> getConnection() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        // 如果连接池为空，等待直到有可用连接
+        while (connections.empty()) {
+            cv.wait(lock);
+        }
+        // 如果停止则直接返回空指针
+        if (b_stop_) {
+            return nullptr;
+        }
+        auto conn = connections.front();
+        connections.pop();
+        return conn;
     }
-    connections_.push(std::move(context));
-    cond_.notify_one();
-  }
 
-  void Close() {
-    b_stop_ = true;
-    cond_.notify_all();
-  }
+    // 归还连接
+    void returnConnection(std::shared_ptr<StubType> conn) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        connections.push(conn);
+        cv.notify_one();
+    }
 
-private:
-  std::atomic<bool> b_stop_;
-  size_t poolSize_;
-  std::string host_;
-  std::string port_;
-  std::queue<std::unique_ptr<VarifyService::Stub>> connections_;
-  std::mutex mutex_;
-  std::condition_variable cond_;
+  private:
+    // 添加一个新连接
+    void addConnection() {
+        auto channel = grpc::CreateChannel(server_target,
+                                           grpc::InsecureChannelCredentials());
+        std::unique_lock<std::mutex> lock(mutex_);
+        connections.push(StubService::NewStub(channel));
+    }
+
+    const std::string server_target;
+    std::atomic<bool> b_stop_;
+    size_t poolSize_;
+    std::queue<std::shared_ptr<StubType>> connections;
+    std::mutex mutex_;
+    std::condition_variable cv;
 };
 
 #endif

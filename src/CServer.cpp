@@ -5,7 +5,7 @@
 CServer::CServer(boost::asio::io_context &ioc, unsigned short &port)
     : _ioc(ioc), _acceptor(ioc, tcp::endpoint(tcp::v4(), port)) {
 
-  spdlog::info("CServer初始化成功，端口为%d",
+  spdlog::info("CServer初始化成功，端口为{}",
                (int)_acceptor.local_endpoint().port());
 }
 

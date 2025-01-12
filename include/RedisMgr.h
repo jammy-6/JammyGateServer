@@ -4,110 +4,35 @@
 
 #ifndef REDISMGR_H
 #define REDISMGR_H
-#include "ConfigMgr.h"
-#include "Global.h"
-#include "Singleton.h"
-#include <atomic>
-#include <condition_variable>
-#include <hiredis.h>
 
-class RedisConPool {
-public:
-  RedisConPool(size_t poolSize, const char *host, int port, const char *pwd)
-      : poolSize_(poolSize), host_(host), port_(port), b_stop_(false) {
-    for (size_t i = 0; i < poolSize_; ++i) {
-      auto *context = redisConnect(host, port);
-      if (context == nullptr || context->err != 0) {
-        if (context != nullptr) {
-          spdlog::info("Redis连接失败，{}:%d不正确，即将释放连接", host, port);
-          redisFree(context);
-        }
-        continue;
-      }
-      auto reply = (redisReply *)redisCommand(context, "AUTH %s", pwd);
-      if (reply->type == REDIS_REPLY_ERROR) {
-        spdlog::info("Redis连接密码认证失败，可能是密码：{} 不正确", pwd);
-        //执行成功 释放redisCommand执行后返回的redisReply所占用的内存
-        freeReplyObject(reply);
-        continue;
-      }
-      //执行成功 释放redisCommand执行后返回的redisReply所占用的内存
-      freeReplyObject(reply);
-      spdlog::info("Redis %d {}:%d连接并认证成功", i, host, port);
-      connections_.push(context);
-    }
-  }
-  ~RedisConPool() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    while (!connections_.empty()) {
-      connections_.pop();
-    }
-  }
-  redisContext *getConnection() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cond_.wait(lock, [this] {
-      if (b_stop_) {
-        return true;
-      }
-      return !connections_.empty();
-    });
-    //如果停止则直接返回空指针
-    if (b_stop_) {
-      return nullptr;
-    }
-    auto *context = connections_.front();
-    connections_.pop();
-    return context;
-  }
-  void returnConnection(redisContext *context) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (b_stop_) {
-      return;
-    }
-    connections_.push(context);
-    cond_.notify_one();
-  }
-  void Close() {
-    b_stop_ = true;
-    cond_.notify_all();
-  }
-
-private:
-  std::atomic<bool> b_stop_;
-  size_t poolSize_;
-  const char *host_;
-  int port_;
-  std::queue<redisContext *> connections_;
-  std::mutex mutex_;
-  std::condition_variable cond_;
-};
+#include "RedisConPool.h"
 
 class RedisMgr : public Singleton<RedisMgr>,
-                 public std::enable_shared_from_this<RedisMgr> {
-  friend class Singleton<RedisMgr>;
+				 public std::enable_shared_from_this<RedisMgr> {
+	friend class Singleton<RedisMgr>;
 
-public:
-  ~RedisMgr();
-  // bool Connect(const std::string& host, int port);
-  bool Get(const std::string &key, std::string &value);
-  bool Set(const std::string &key, const std::string &value);
-  // bool Auth(const std::string &password);
-  bool LPush(const std::string &key, const std::string &value);
-  bool LPop(const std::string &key, std::string &value);
-  bool RPush(const std::string &key, const std::string &value);
-  bool RPop(const std::string &key, std::string &value);
-  bool HSet(const std::string &key, const std::string &hkey,
-            const std::string &value);
-  bool HSet(const char *key, const char *hkey, const char *hvalue,
-            size_t hvaluelen);
-  std::string HGet(const std::string &key, const std::string &hkey);
-  bool Del(const std::string &key);
-  bool ExistsKey(const std::string &key);
-  void Close();
+  public:
+	~RedisMgr();
+	// bool Connect(const std::string& host, int port);
+	bool get(const std::string &key, std::string &value);
+	bool set(const std::string &key, const std::string &value);
+	// bool Auth(const std::string &password);
+	bool lPush(const std::string &key, const std::string &value);
+	bool lPop(const std::string &key, std::string &value);
+	bool rPush(const std::string &key, const std::string &value);
+	bool rPop(const std::string &key, std::string &value);
+	bool hSet(const std::string &key, const std::string &hkey,
+			  const std::string &value);
+	bool hSet(const char *key, const char *hkey, const char *hvalue,
+			  size_t hvaluelen);
+	std::string hGet(const std::string &key, const std::string &hkey);
+	bool del(const std::string &key);
+	bool existsKey(const std::string &key);
+	void close();
 
-private:
-  RedisMgr();
-  std::unique_ptr<RedisConPool> _conn_pool;
+  private:
+	RedisMgr();
+	std::unique_ptr<RedisConPool> _conn_pool;
 };
 
 #endif // REDISMGR_H
