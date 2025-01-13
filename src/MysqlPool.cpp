@@ -15,6 +15,7 @@ MysqlPool::MysqlPool(const std::string &url, const std::string &user,
 			con->setSchema(schema_);
 			pool_.push(std::move(con));
 		}
+		spdlog::info("MySQL连接池初始化成功");
 	} catch (sql::SQLException &e) {
 		// 处理异常
 		spdlog::error("MySQL连接池初始化异常");

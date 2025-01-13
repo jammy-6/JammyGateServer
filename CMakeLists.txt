@@ -11,16 +11,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/proto)
 configure_file(Config.h.in Config.h)
 include_directories(${CMAKE_BINARY_DIR})
 include_directories("/root/.local/include")
-# VS sln项目文件分类
-if(WIN32)
-	source_group("CMake Rules"  REGULAR_EXPRESSION "^$")
-    source_group("Generated Files" REGULAR_EXPRESSION "moc_.*|ui_.*|qrc_.*|mocs_.*")
-	source_group("Header Files" REGULAR_EXPRESSION ".h$")
-	source_group("Source Files" REGULAR_EXPRESSION ".cpp$")
-    source_group("Qrc Files"    REGULAR_EXPRESSION ".qrc$")
-    source_group("Ui Files"    REGULAR_EXPRESSION ".ui$")
-	source_group("zero"			REGULAR_EXPRESSION ".stamp$|.rule$")
-endif()
 
 # 配置项目构建类型
 if(NOT CMAKE_BUILD_TYPE)
@@ -70,12 +60,25 @@ target_link_libraries(
         spdlog::spdlog
 )
 
+# 配置类和工具类动态库
+# add_library(
+#     JammyConfiger
+#     SHARED
+#     ${${PROJECT_NAME}_src_dir}/ConfigMgr.cpp
+#     ${${PROJECT_NAME}_src_dir}/GlobalTool.cpp
+# )
+
+# target_link_libraries(
+#     JammyConfiger
+#         spdlog::spdlog
+# )
 # 配置cserver相关动态库
 add_library(
     ${PROJECT_NAME}_server
     ${${PROJECT_NAME}_src_dir}/CServer.cpp
     ${${PROJECT_NAME}_src_dir}/HttpConnection.cpp
     ${${PROJECT_NAME}_src_dir}/ConfigMgr.cpp
+    ${${PROJECT_NAME}_src_dir}/GlobalTool.cpp
 )
 
 target_link_libraries(
@@ -94,8 +97,7 @@ add_library(
 )
 # 连接mysqlconn8连接库与spdlog
 target_link_libraries(
-    ${PROJECT_NAME}_mysql 
-        pthread 
+    ${PROJECT_NAME}_mysql  
         mysqlcppconn
         spdlog::spdlog
 )
@@ -109,8 +111,7 @@ add_library(
 )
 
 target_link_libraries(
-    ${PROJECT_NAME}_redis
-        pthread 
+    ${PROJECT_NAME}_redis 
         ${HIREDIS_LIB}
         spdlog::spdlog
         
@@ -124,10 +125,8 @@ add_library(
 )
 
 target_link_libraries(
-    ${PROJECT_NAME}_asio 
-        pthread 
+    ${PROJECT_NAME}_asio  
         spdlog::spdlog 
-        
 )
 
 # 生成可执行文件
@@ -143,6 +142,7 @@ target_link_libraries(
         ${PROJECT_NAME}_redis
         ${PROJECT_NAME}_server
         ${PROJECT_NAME}_rpcservice
+        # JammyConfiger
         spdlog::spdlog
 ) 
 

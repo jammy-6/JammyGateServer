@@ -22,7 +22,7 @@ RedisConPool::RedisConPool(size_t poolSize, const char *host, int port,
 		}
 		// 执行成功 释放redisCommand执行后返回的redisReply所占用的内存
 		freeReplyObject(reply);
-		spdlog::info("Redis {} {}:{}连接并认证成功", i, host, port);
+		spdlog::trace("Redis {} {}:{}连接并认证成功", i, host, port);
 		connections_.push(context);
 	}
 }
